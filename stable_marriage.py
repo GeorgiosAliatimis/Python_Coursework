@@ -83,18 +83,20 @@ class Stable_Marriage:
     def solve_problem(self,table1: Table,table2: Table):
         pass
 
-table1: Table = dict()
-table1["A"] = ["c","b","d","a"]
-table1["B"] = ["b","a","c","d"]
-table1["C"] = ["b","d","a","c"]
-table1["D"] = ["c","a","d","b"]
 
-table2: Table = dict()
-table2["a"] = ["A","B","D","C"]
-table2["b"] = ["C","A","D","B"]
-table2["c"] = ["C","B","D","A"]
-table2["d"] = ["B","A","C","D"]
+if __name__ == "__main__":
+    table1: Table = dict()
+    table1["A"] = ["c","b","d","a"]
+    table1["B"] = ["b","a","c","d"]
+    table1["C"] = ["b","d","a","c"]
+    table1["D"] = ["c","a","d","b"]
 
-s: Stable_Marriage = Stable_Marriage(table1,table2)
-s.solve_problem(table1,table2)
-s.print_tables()
+    table2: Table = dict()
+    table2["a"] = ["A","B","D","C"]
+    table2["b"] = ["C","A","D","B"]
+    table2["c"] = ["C","B","D","A"]
+    table2["d"] = ["B","A","C","D"]
+    
+    s: Stable_Marriage = Stable_Marriage(table1,table2)
+    s.solve_problem(table1,table2)
+    s.print_tables()
