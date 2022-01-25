@@ -8,7 +8,8 @@ Table = Dict[Sym,Sequence[Sym]]
 class Stable_Marriage:
     def __init__(self, table1: Table | None = None, 
                        table2: Table | None = None,
-                       n: int = 5) -> None:
+                       n: int = 5, 
+                       random_seed: int = 1) -> None:
         assert self.validate_table(table1), 'Value of table1 is not valid'
         assert self.validate_table(table2), 'Value of table2 is not valid'
         assert self.validate_tables(table1,table2), \
@@ -21,6 +22,7 @@ class Stable_Marriage:
             print("Arguments table1 or table2 not specified")
             self._symbols1 = list(range(n))
             self._symbols2 = list(range(n))
+            random.seed(random_seed)
             self.generate_random_tables()
             print(f"Generated random tables for {n} men and {n} women.")
         else: 
@@ -37,7 +39,9 @@ class Stable_Marriage:
             
 
     def generate_random_tables(self):
-        pass 
+        n : int = len(self._symbols1)
+        self._table1 = [ random.sample(range(n) ,n ) for _ in range(n)] 
+        self._table2 = [ random.sample(range(n) ,n ) for _ in range(n)] 
 
     def validate_tables(self,table1: Table|None, table2: Table|None) -> bool:
         return True 
@@ -56,7 +60,6 @@ class Stable_Marriage:
         print(self._table2)
 
     def solve_problem(self,table1: Table,table2: Table):
-        # matching = dict()
         pass
 
 table1: Table = dict()
@@ -71,6 +74,6 @@ table2["b"] = ["C","A","D","B"]
 table2["c"] = ["C","B","D","A"]
 table2["d"] = ["B","A","C","D"]
 
-s: Stable_Marriage = Stable_Marriage(table1,table2)
+s: Stable_Marriage = Stable_Marriage()
 s.solve_problem(table1,table2)
 s.print_tables()
