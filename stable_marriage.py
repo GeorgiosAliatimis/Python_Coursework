@@ -1,9 +1,9 @@
 import random
 from collections.abc import Sequence
 from tabulate import tabulate
-from typing import TypeVar, Generic, Type, Dict, List, Sequence 
+from typing import TypeVar, Generic, Type, Dict, List, Sequence, Any
 
-Sym = int | str
+Sym: Any = int | str
 Table = Dict[Sym,Sequence[Sym]]
 class Stable_Marriage:
     def __init__(self, table1: Table | None = None, 
@@ -12,8 +12,10 @@ class Stable_Marriage:
                        random_seed: int = 1) -> None:
         assert self.validate_table(table1), 'Value of table1 is not valid'
         assert self.validate_table(table2), 'Value of table2 is not valid'
-        assert self.validate_tables(table1,table2), \
+        assert self.validate_tables_dimension(table1,table2), \
             'Values of table1 and table2 are valid, but they do not have the same dimensions.'
+        assert self.validate_tables_share_symbols(table1,table2), \
+            'Values of table1 and table2 are valid and have the same dimension, but use different symbols'
         self._symbols1: List[Sym]
         self._symbols2: List[Sym]
         self._table1: Table
@@ -39,18 +41,25 @@ class Stable_Marriage:
             
 
     def generate_random_tables(self):
-        n : int = len(self._symbols1)
+        n : int = len(self._table1)
         self._table1 = [ random.sample(range(n) ,n ) for _ in range(n)] 
         self._table2 = [ random.sample(range(n) ,n ) for _ in range(n)] 
 
-    def validate_tables(self,table1: Table|None, table2: Table|None) -> bool:
-        return True 
+    def validate_tables_dimension(self,table1: Table|None, table2: Table|None) -> bool:
+        if table1 is None or table2 is None:    return True
+        return len(table1) == len(table2)
+
+    def validate_tables_share_symbols(self,table1: Table|None, table2: Table|None) -> bool:
+        if table1 is None or table2 is None:    return True
+        vals2_in_keys1: bool  =  all( all(y in table1.keys()  for y in x) for x in table2.values() )
+        vals1_in_keys2: bool  =  all( all(y in table2.keys()  for y in x) for x in table1.values() )
+        return vals1_in_keys2 and vals2_in_keys1
 
     def validate_table(self,table: Table | None) -> bool:
         if table is None:   return True
         is_right_type: bool=isinstance(table,dict) and  \
                             all(isinstance(x, Sequence) for x in table.values()) and \
-                            all(all(isinstance(y,Sym) for y in x) for x in table.values())  
+                            all(all(isinstance(y, Sym.__args__) for y in x) for x in table.values())  
         if not is_right_type:   return False
         n: int = len(table[next(iter(table))])
         has_consistent_dimension: bool = all(len(x) == n for x in table.values())
@@ -64,8 +73,9 @@ class Stable_Marriage:
         pass 
 
     def print_tables(self) -> None:
-        print(self._table1)
-        print(self._table2)
+        n: int = len(self._table1)
+        for t in (self._table1,self._table2):
+            print(tabulate( [[k] + v for k, v in t.items()],tablefmt="fancy_grid",headers= [""] + list(range(n)) ))
 
     def solve_problem(self,table1: Table,table2: Table):
         pass
