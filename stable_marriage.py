@@ -32,8 +32,8 @@ class Stable_Marriage:
             self._symbols2 = list(table_women.keys())
             self._table_men = table_men 
             self._table_women = table_women
-        self._ranking_of_men: Dict[Sym,Dict[Sym,int]] = self.get_ranking(self._table_men)
-        self._ranking_of_women: Dict[Sym,Dict[Sym,int]] = self.get_ranking(self._table_women)
+        self._rank_women: Dict[Sym,Dict[Sym,int]] = self.get_ranking(self._table_men)
+        self._rank_men: Dict[Sym,Dict[Sym,int]] = self.get_ranking(self._table_women)
 
     def get_ranking(self,table: Table) -> Dict[Sym,Dict[Sym,int]]: 
         return {row: {v:i for i,v in enumerate(val)} for row,val in table.items()}
@@ -65,10 +65,21 @@ class Stable_Marriage:
         return True
 
     def matching_is_stable(self, matching: Dict[Sym,Sym]) -> int:
-        pass
+        for woman, men in self._table_women.items():
+            for man in men:
+                if man == matching[woman]:  continue
+                curr_wife: Sym = matching[man]
+                if self._rank_women[man][woman] < self._rank_women[man][curr_wife]:   
+                    return False
+        return True
 
     def scores(self, matching: Dict[Sym,Sym]) -> list[int]:
-        pass 
+        score_men: int 
+        score_women: int 
+        score_men = sum(self._rank_women[man][matching[man]] for man in self._table_men)
+        inv_matching: Dict[Sym,Sym] 
+        score_women = sum(self._table_women[matching[man]].index(man) for man in self._table_men)
+        return score_men, score_women
 
     def print_tables(self) -> None:
         n: int = len(self._table_men)
@@ -100,3 +111,9 @@ if __name__ == "__main__":
     s.print_tables()
     print(s.get_ranking(s._table_men))
     print(s.get_ranking(s._table_women))
+    matching: Dict[Sym,Sym] = dict()
+    matching["A"] = "d"
+    matching["B"] = "a"
+    matching["C"] = "b"
+    matching["D"] = "c"
+    print(s.matching_is_stable(matching))
