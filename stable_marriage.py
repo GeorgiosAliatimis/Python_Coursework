@@ -32,18 +32,16 @@ class Stable_Marriage:
             self._symbols2 = list(table_women.keys())
             self._table_men = table_men 
             self._table_women = table_women
-            # self._table_men = [ 
-            #     [self._symbols2.index(sym2)  for sym2 in table_men[sym1]] 
-            # for sym1 in self._symbols1]
-            # self._table_women = [ 
-            #     [self._symbols1.index(sym1)  for sym1 in table_women[sym2]] 
-            # for sym2 in self._symbols2]
-            
+        self._ranking_of_men: Dict[Sym,Dict[Sym,int]] = self.get_ranking(self._table_men)
+        self._ranking_of_women: Dict[Sym,Dict[Sym,int]] = self.get_ranking(self._table_women)
+
+    def get_ranking(self,table: Table) -> Dict[Sym,Dict[Sym,int]]: 
+        return {row: {v:i for i,v in enumerate(val)} for row,val in table.items()}
 
     def generate_random_tables(self):
         n : int = len(self._table_men)
-        self._table_men = [ random.sample(range(n) ,n ) for _ in range(n)] 
-        self._table_women = [ random.sample(range(n) ,n ) for _ in range(n)] 
+        self._table_men = [ random.sample(range(n) ,n) for _ in range(n)] 
+        self._table_women = [ random.sample(range(n) ,n) for _ in range(n)] 
 
     def validate_tables_dimension(self,table_men: Table|None, table_women: Table|None) -> bool:
         if table_men is None or table_women is None:    return True
@@ -66,10 +64,10 @@ class Stable_Marriage:
         if not has_consistent_dimension: return False
         return True
 
-    def matching_is_stable(self,table_men: Table,table_women: Table,matching) -> int:
+    def matching_is_stable(self, matching: Dict[Sym,Sym]) -> int:
         pass
 
-    def scores(self,table_men: Table, table_women: Table, matching) -> list[int]:
+    def scores(self, matching: Dict[Sym,Sym]) -> list[int]:
         pass 
 
     def print_tables(self) -> None:
@@ -100,3 +98,5 @@ if __name__ == "__main__":
     s: Stable_Marriage = Stable_Marriage(table_men,table_women)
     s.solve_problem(table_men,table_women)
     s.print_tables()
+    print(s.get_ranking(s._table_men))
+    print(s.get_ranking(s._table_women))
