@@ -1,5 +1,5 @@
 import random
-from collections import deque
+from collections.abc import Sequence
 from tabulate import tabulate
 from typing import TypeVar, Generic, Type, Dict, List, Sequence 
 
@@ -16,8 +16,8 @@ class Stable_Marriage:
             'Values of table1 and table2 are valid, but they do not have the same dimensions.'
         self._symbols1: List[Sym]
         self._symbols2: List[Sym]
-        self._table1: List[List[int]]
-        self._table2: List[List[int]]
+        self._table1: Table
+        self._table2: Table
         if table1 is None or table2 is None:
             print("Arguments table1 or table2 not specified")
             self._symbols1 = list(range(n))
@@ -47,6 +47,14 @@ class Stable_Marriage:
         return True 
 
     def validate_table(self,table: Table | None) -> bool:
+        if table is None:   return True
+        is_right_type: bool=isinstance(table,dict) and  \
+                            all(isinstance(x, Sequence) for x in table.values()) and \
+                            all(all(isinstance(y,Sym) for y in x) for x in table.values())  
+        if not is_right_type:   return False
+        n: int = len(table[next(iter(table))])
+        has_consistent_dimension: bool = all(len(x) == n for x in table.values())
+        if not has_consistent_dimension: return False
         return True
 
     def matching_is_stable(self,table1: Table,table2: Table,matching) -> int:
@@ -74,6 +82,6 @@ table2["b"] = ["C","A","D","B"]
 table2["c"] = ["C","B","D","A"]
 table2["d"] = ["B","A","C","D"]
 
-s: Stable_Marriage = Stable_Marriage()
+s: Stable_Marriage = Stable_Marriage(table1,table2)
 s.solve_problem(table1,table2)
 s.print_tables()
