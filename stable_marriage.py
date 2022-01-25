@@ -75,7 +75,10 @@ class Stable_Marriage:
     def print_tables(self) -> None:
         n: int = len(self._table1)
         for t in (self._table1,self._table2):
-            print(tabulate( [[k] + v for k, v in t.items()],tablefmt="fancy_grid",headers= [""] + list(range(n)) ))
+            matrix: List[List[Sym]] = [[k] + list(v) for k, v in t.items()]
+            ordinal = lambda n: "%d%s" % (n,"tsnrhtdd"[(n//10%10!=1)*(n%10<4)*n%10::4])
+            headers: List[str] = [""] + [ordinal(i) for i in range(1,n+1)]
+            print(tabulate( matrix,tablefmt="fancy_grid",headers=headers))
 
     def solve_problem(self,table1: Table,table2: Table):
         pass
