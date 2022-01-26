@@ -15,19 +15,13 @@ class Stable_Marriage:
             'Values of table_men and table_women are valid, but they do not have the same dimensions.'
         assert self.validate_tables_share_symbols(table_men,table_women), \
             'Values of table_men and table_women are valid and have the same dimension, but use different symbols'
-        self._symbols_men: List[Sym]
-        self._symbols_women: List[Sym]
         self._table_men: Table
         self._table_women: Table
         if table_men is None or table_women is None:
             print("Arguments table_men or table_women not specified")
-            self._symbols_men = list(range(n))
-            self._symbols_women = list(range(n))
             self.generate_random_tables()
             print(f"Generated random tables for {n} men and {n} women.")
         else: 
-            self._symbols_men = list(table_men.keys())
-            self._symbols_women = list(table_women.keys())
             self._table_men = table_men 
             self._table_women = table_women
         self._rank_women: Dict[Sym,Dict[Sym|None,int]] = self.get_ranking(self._table_men)
