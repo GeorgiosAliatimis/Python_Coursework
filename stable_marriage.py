@@ -1,7 +1,7 @@
 import random
 from collections.abc import Sequence
 from tabulate import tabulate
-from typing import Iterable, Dict, List, Sequence, Any, Tuple, Callable
+from typing import Iterable, Dict, List, Sequence, Any, Tuple
 
 Sym: Any = int | str
 Table = Dict[Sym,Sequence[Sym]]
@@ -24,8 +24,12 @@ class Stable_Marriage:
         '''table_men and table_woman are validated and ranking are computed'''        
         assert self.validate_table(table_men), 'Value of table_men is not valid'
         assert self.validate_table(table_women), 'Value of table_women is not valid'
-        assert self.validate_tables_dimension(table_men,table_women), \
-            'Values of table_men and table_women are valid, but they do not have the same dimensions.'
+        assert self.validate_table_no_duplicates(table_men), \
+            'table_men has duplicate values in a preference list.'
+        assert self.validate_table_no_duplicates(table_women), \
+            'table_women has duplicate values in a preference list.'
+        # assert self.validate_tables_dimension(table_men,table_women), \
+        #     'Values of table_men and table_women are valid, but they do not have the same dimensions.'
         assert self.validate_tables_share_symbols(table_men,table_women), \
             'Values of table_men and table_women are valid and have the same dimension, but use different symbols'
         self._table_men: Table   = table_men 
@@ -42,12 +46,19 @@ class Stable_Marriage:
         '''
         return {key: {v:i for i,v in enumerate(val)} | {None:len(val)}  for key,val in table.items()}
 
-    def validate_tables_dimension(self,table_men: Table, table_women: Table) -> bool:
-        '''Validates that the dimensions of the two tables are the same'''
-        return len(table_men) == len(table_women)
+    def validate_table_no_duplicates(self,table: Table) -> bool:
+        '''Validates that the table has no duplicates in any of its preference lists'''
+        return all(len(pref_list) == len(set(pref_list))  for pref_list in table.values())
+
+    # def validate_tables_dimension(self,table_men: Table, table_women: Table) -> bool:
+    #     '''Validates that the dimensions of the two tables are the same'''
+    #     return len(table_men) == len(table_women)
 
     def validate_tables_share_symbols(self,table_men: Table, table_women: Table) -> bool:
-        '''Validates that the tables share the same symbols'''
+        '''
+        Validates that the tables share the same symbols and that every symbol 
+        that is a preference list of some table is in the keys of the other table.
+        '''
         vals2_in_keys1: bool  =  all( all(y in table_men.keys()  for y in x) for x in table_women.values() )
         vals1_in_keys2: bool  =  all( all(y in table_women.keys()  for y in x) for x in table_men.values() )
         return vals1_in_keys2 and vals2_in_keys1
