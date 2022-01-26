@@ -39,7 +39,7 @@ class Stable_Marriage:
         A preference list ["a","b","c"] becomes a ranking dictionary {"a":1,"b":2,"c":3} 
         so that output[X][y] is the ranking of y according to X.
         Rankings begin from zero.
-         '''
+        '''
         return {key: {v:i for i,v in enumerate(val)} | {None:len(val)}  for key,val in table.items()}
 
     def validate_tables_dimension(self,table_men: Table, table_women: Table) -> bool:
@@ -64,8 +64,10 @@ class Stable_Marriage:
         return True
 
     def matching_is_stable(self, matching: Dict[Sym,Sym]) -> bool:
-        '''For a given matching (which is a dictionary with key=man and value=matched_woman) the algorithm 
-        checks whether the matching is stable returning True if it is.'''
+        '''
+        For a given matching (which is a dictionary with key=man and value=matched_woman) the algorithm 
+        checks whether the matching is stable returning True if it is.
+        '''
         woman: Sym
         man: Sym 
         men: Iterable[Sym] 
@@ -78,12 +80,14 @@ class Stable_Marriage:
         return True
 
     def compute_score(self, matching: Dict[Sym,Sym]) -> Tuple[int,int]:
-        '''Computes the score for men and women which is defined as the sum of all the rankings 
+        '''
+        Computes the score for men and women which is defined as the sum of all the rankings 
         for men and women respectively. The higher the score for a gender,
         the less the aggregate satisfaction for that gender. A score of zero corresponds to complete 
         satisfaction for that gender implying that every person from that gender got their first preference.
         The highest score is (n-1)*n which corresponds to every person from that gender getting their last preference,
-        where n is the number of people from each gender.'''
+        where n is the number of people from each gender.
+        '''
         score_men: int 
         score_women: int 
         score_men = sum(self._rank_women[man][matching[man]] for man in self._table_men)
@@ -101,7 +105,8 @@ class Stable_Marriage:
             print(tabulate( matrix,tablefmt="fancy_grid",headers=headers))
 
     def solve_problem(self) -> Dict[Sym,Sym]:
-        '''The Stable Marriage Problem is solved using the algorithm descripted in Chapter 2 page 9
+        '''
+        The Stable Marriage Problem is solved using the algorithm descripted in Chapter 2 page 9
         of 'Stable Marriage and Its Relation to Other Combinatorial Problems'.
         A matching (as a dictionary) is returned.
         '''
