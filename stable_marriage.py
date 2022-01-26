@@ -28,10 +28,8 @@ class Stable_Marriage:
             'table_men has duplicate values in a preference list.'
         assert self.validate_table_no_duplicates(table_women), \
             'table_women has duplicate values in a preference list.'
-        # assert self.validate_tables_dimension(table_men,table_women), \
-        #     'Values of table_men and table_women are valid, but they do not have the same dimensions.'
         assert self.validate_tables_share_symbols(table_men,table_women), \
-            'Values of table_men and table_women are valid and have the same dimension, but use different symbols'
+            'Values of table_men and table_women are valid but there is a symbol mismatch'
         self._table_men: Table   = table_men 
         self._table_women: Table = table_women
         self._rank_women: Dict[Sym,Dict[Sym|None,int]] = self.compute_ranking(self._table_men)
@@ -50,17 +48,13 @@ class Stable_Marriage:
         '''Validates that the table has no duplicates in any of its preference lists'''
         return all(len(pref_list) == len(set(pref_list))  for pref_list in table.values())
 
-    # def validate_tables_dimension(self,table_men: Table, table_women: Table) -> bool:
-    #     '''Validates that the dimensions of the two tables are the same'''
-    #     return len(table_men) == len(table_women)
-
     def validate_tables_share_symbols(self,table_men: Table, table_women: Table) -> bool:
         '''
-        Validates that the tables share the same symbols and that every symbol 
-        that is a preference list of some table is in the keys of the other table.
+        Validates that the tables share the same symbols in that for every
+        preference list of a table there is a 1-1 mapping to the keys of the other table
         '''
-        vals2_in_keys1: bool  =  all( all(y in table_men.keys()  for y in x) for x in table_women.values() )
-        vals1_in_keys2: bool  =  all( all(y in table_women.keys()  for y in x) for x in table_men.values() )
+        vals2_in_keys1: bool  =  all( set(x) == set(table_men.keys()) for x in table_women.values() )
+        vals1_in_keys2: bool  =  all( set(x) == set(table_women.keys()) for x in table_men.values() )
         return vals1_in_keys2 and vals2_in_keys1
 
     def validate_table(self,table: Table) -> bool:
