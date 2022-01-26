@@ -6,7 +6,7 @@ from numpy import log, exp
 
 def average_execution_time(fun,M=1000,silent=False):
     start = time.perf_counter()
-    for i in range(M): fun()
+    for _ in range(M): fun()
     end = time.perf_counter()   
     aet = (end-start)/M
     if silent:  return aet
@@ -41,4 +41,5 @@ plt.loglog(n_vals, exp(model.intercept_) * n_vals**model.coef_,\
 plt.xlabel(r"n")
 plt.title("Execution time of Stable Marriage")
 plt.legend(["Execution time","Fitted"])
-plt.savefig("execution_time.png",format="png")
+# plt.savefig("execution_time.png",format="png")
+plt.show()
