@@ -6,47 +6,31 @@ from typing import Iterable, TypeVar, Generic, Type, Dict, List, Sequence, Any, 
 Sym: Any = int | str
 Table = Dict[Sym,Sequence[Sym]]
 class Stable_Marriage:
-    def __init__(self, table_men: Table | None = None, 
-                       table_women: Table | None = None,
-                       n: int = 5) -> None:
+    def __init__(self, table_men: Table, 
+                       table_women: Table) -> None:
         assert self.validate_table(table_men), 'Value of table_men is not valid'
         assert self.validate_table(table_women), 'Value of table_women is not valid'
         assert self.validate_tables_dimension(table_men,table_women), \
             'Values of table_men and table_women are valid, but they do not have the same dimensions.'
         assert self.validate_tables_share_symbols(table_men,table_women), \
             'Values of table_men and table_women are valid and have the same dimension, but use different symbols'
-        self._table_men: Table
-        self._table_women: Table
-        if table_men is None or table_women is None:
-            print("Arguments table_men or table_women not specified")
-            self.generate_random_tables()
-            print(f"Generated random tables for {n} men and {n} women.")
-        else: 
-            self._table_men = table_men 
-            self._table_women = table_women
-        self._rank_women: Dict[Sym,Dict[Sym|None,int]] = self.get_ranking(self._table_men)
-        self._rank_men: Dict[Sym,Dict[Sym|None,int]] = self.get_ranking(self._table_women)
+        self._table_men: Table   = table_men 
+        self._table_women: Table = table_women
+        self._rank_women: Dict[Sym,Dict[Sym|None,int]] = self.compute_ranking(self._table_men)
+        self._rank_men: Dict[Sym,Dict[Sym|None,int]] = self.compute_ranking(self._table_women)
 
-    def get_ranking(self,table: Table) -> Dict[Sym,Dict[Sym|None,int]]: 
+    def compute_ranking(self,table: Table) -> Dict[Sym,Dict[Sym|None,int]]: 
         return {key: {v:i for i,v in enumerate(val)} | {None:len(val)}  for key,val in table.items()}
 
-    def generate_random_tables(self):
-        n : int = len(self._table_men)
-        self._table_men = [ random.sample(range(n) ,n) for _ in range(n)] 
-        self._table_women = [ random.sample(range(n) ,n) for _ in range(n)] 
-
-    def validate_tables_dimension(self,table_men: Table|None, table_women: Table|None) -> bool:
-        if table_men is None or table_women is None:    return True
+    def validate_tables_dimension(self,table_men: Table, table_women: Table) -> bool:
         return len(table_men) == len(table_women)
 
-    def validate_tables_share_symbols(self,table_men: Table|None, table_women: Table|None) -> bool:
-        if table_men is None or table_women is None:    return True
+    def validate_tables_share_symbols(self,table_men: Table, table_women: Table) -> bool:
         vals2_in_keys1: bool  =  all( all(y in table_men.keys()  for y in x) for x in table_women.values() )
         vals1_in_keys2: bool  =  all( all(y in table_women.keys()  for y in x) for x in table_men.values() )
         return vals1_in_keys2 and vals2_in_keys1
 
-    def validate_table(self,table: Table | None) -> bool:
-        if table is None:   return True
+    def validate_table(self,table: Table) -> bool:
         is_right_type: bool=isinstance(table,dict) and  \
                             all(isinstance(x, Sequence) for x in table.values()) and \
                             all(all(isinstance(y, Sym.__args__) for y in x) for x in table.values())  
@@ -98,6 +82,15 @@ class Stable_Marriage:
                     man, inv_matching[woman] = inv_matching[woman], man
                 if man is not None: man_individual_score[man] += 1
         return matching
+
+class Stable_Marriage_Random_Tables(Stable_Marriage):
+    def __init__(self,n: int) -> None:
+        table_men: Table   = self.generate_random_table(n)
+        table_women: Table = self.generate_random_table(n)
+        super().__init__(table_men, table_women)
+
+    def generate_random_table(self,n: int) -> Table:
+        return {i:random.sample(range(n) ,n) for i in range(n)} 
 
 if __name__ == "__main__":
     table_men: Table = dict()
