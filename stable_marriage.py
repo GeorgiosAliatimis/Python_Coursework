@@ -67,17 +67,16 @@ class Stable_Marriage:
     def matching_is_stable(self, matching: Dict[Sym,Sym]) -> int:
         for woman, men in self._table_women.items():
             for man in men:
-                if man == matching[woman]:  continue
+                if woman == matching[man]:  break
                 curr_wife: Sym = matching[man]
                 if self._rank_women[man][woman] < self._rank_women[man][curr_wife]:   
                     return False
         return True
 
-    def scores(self, matching: Dict[Sym,Sym]) -> list[int]:
+    def compute_score(self, matching: Dict[Sym,Sym]) -> list[int]:
         score_men: int 
         score_women: int 
         score_men = sum(self._rank_women[man][matching[man]] for man in self._table_men)
-        inv_matching: Dict[Sym,Sym] 
         score_women = sum(self._table_women[matching[man]].index(man) for man in self._table_men)
         return score_men, score_women
 
@@ -116,4 +115,7 @@ if __name__ == "__main__":
     matching["B"] = "a"
     matching["C"] = "b"
     matching["D"] = "c"
-    print(s.matching_is_stable(matching))
+    print(s.matching_is_stable(matching), s.compute_score(matching))
+    matching["A"] = "c"
+    matching["D"] = "d"
+    print(s.matching_is_stable(matching), s.compute_score(matching))
