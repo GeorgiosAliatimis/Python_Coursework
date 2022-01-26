@@ -107,9 +107,16 @@ if __name__ == "__main__":
 
     s: Stable_Marriage = Stable_Marriage(table_men,table_women)
     s.print_tables()
-    # print(s.get_ranking(s._table_men))
-    # print(s.get_ranking(s._table_women))
     opt_matching: Dict[Sym,Sym] = s.solve_problem()
     print(f"Matching found: {opt_matching}")
     print(f"Matching is stable? {s.matching_is_stable(opt_matching)}")
     print(f"Score for (men,women) is {s.compute_score(opt_matching)}")
+
+    print("-"*40)
+    random.seed(1)
+    r: Stable_Marriage_Random_Tables = Stable_Marriage_Random_Tables(5)
+    r.print_tables()
+    opt_matching: Dict[Sym,Sym] = r.solve_problem()
+    print(f"Matching found: {opt_matching}")
+    print(f"Matching is stable? {r.matching_is_stable(opt_matching)}")
+    print(f"Score for (men,women) is {r.compute_score(opt_matching)}")
