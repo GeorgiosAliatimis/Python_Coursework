@@ -1,42 +1,40 @@
 import random
 from collections.abc import Sequence
 from tabulate import tabulate
-from typing import TypeVar, Generic, Type, Dict, List, Sequence, Any
+from typing import Iterable, TypeVar, Generic, Type, Dict, List, Sequence, Any, Tuple
 
 Sym: Any = int | str
 Table = Dict[Sym,Sequence[Sym]]
 class Stable_Marriage:
     def __init__(self, table_men: Table | None = None, 
                        table_women: Table | None = None,
-                       n: int = 5, 
-                       random_seed: int = 1) -> None:
+                       n: int = 5) -> None:
         assert self.validate_table(table_men), 'Value of table_men is not valid'
         assert self.validate_table(table_women), 'Value of table_women is not valid'
         assert self.validate_tables_dimension(table_men,table_women), \
             'Values of table_men and table_women are valid, but they do not have the same dimensions.'
         assert self.validate_tables_share_symbols(table_men,table_women), \
             'Values of table_men and table_women are valid and have the same dimension, but use different symbols'
-        self._symbols1: List[Sym]
-        self._symbols2: List[Sym]
+        self._symbols_men: List[Sym]
+        self._symbols_women: List[Sym]
         self._table_men: Table
         self._table_women: Table
         if table_men is None or table_women is None:
             print("Arguments table_men or table_women not specified")
-            self._symbols1 = list(range(n))
-            self._symbols2 = list(range(n))
-            random.seed(random_seed)
+            self._symbols_men = list(range(n))
+            self._symbols_women = list(range(n))
             self.generate_random_tables()
             print(f"Generated random tables for {n} men and {n} women.")
         else: 
-            self._symbols1 = list(table_men.keys())
-            self._symbols2 = list(table_women.keys())
+            self._symbols_men = list(table_men.keys())
+            self._symbols_women = list(table_women.keys())
             self._table_men = table_men 
             self._table_women = table_women
-        self._rank_women: Dict[Sym,Dict[Sym,int]] = self.get_ranking(self._table_men)
-        self._rank_men: Dict[Sym,Dict[Sym,int]] = self.get_ranking(self._table_women)
+        self._rank_women: Dict[Sym,Dict[Sym|None,int]] = self.get_ranking(self._table_men)
+        self._rank_men: Dict[Sym,Dict[Sym|None,int]] = self.get_ranking(self._table_women)
 
-    def get_ranking(self,table: Table) -> Dict[Sym,Dict[Sym,int]]: 
-        return {row: {v:i for i,v in enumerate(val)} for row,val in table.items()}
+    def get_ranking(self,table: Table) -> Dict[Sym,Dict[Sym|None,int]]: 
+        return {key: {v:i for i,v in enumerate(val)} | {None:len(val)}  for key,val in table.items()}
 
     def generate_random_tables(self):
         n : int = len(self._table_men)
@@ -65,6 +63,9 @@ class Stable_Marriage:
         return True
 
     def matching_is_stable(self, matching: Dict[Sym,Sym]) -> int:
+        woman: Sym
+        man: Sym 
+        men: Iterable[Sym] 
         for woman, men in self._table_women.items():
             for man in men:
                 if woman == matching[man]:  break
@@ -73,7 +74,7 @@ class Stable_Marriage:
                     return False
         return True
 
-    def compute_score(self, matching: Dict[Sym,Sym]) -> list[int]:
+    def compute_score(self, matching: Dict[Sym,Sym]) -> Tuple[int,int]:
         score_men: int 
         score_women: int 
         score_men = sum(self._rank_women[man][matching[man]] for man in self._table_men)
@@ -82,15 +83,27 @@ class Stable_Marriage:
 
     def print_tables(self) -> None:
         n: int = len(self._table_men)
+        t: Table
         for t in (self._table_men,self._table_women):
             matrix: List[List[Sym]] = [[k] + list(v) for k, v in t.items()]
             ordinal = lambda n: "%d%s" % (n,"tsnrhtdd"[(n//10%10!=1)*(n%10<4)*n%10::4])
             headers: List[str] = [""] + [ordinal(i) for i in range(1,n+1)]
             print(tabulate( matrix,tablefmt="fancy_grid",headers=headers))
 
-    def solve_problem(self,table_men: Table,table_women: Table):
-        pass
-
+    def solve_problem(self) -> Dict[Sym,Sym]:
+        man_individual_score: Dict[Sym,int] = {man:0 for man in self._table_men}
+        matching: Dict[Sym,Sym|None] = {man: None for man in self._table_men}
+        inv_matching: Dict[Sym,Sym|None] = {woman: None for woman in self._table_women}
+        man: Sym|None
+        for man in self._table_men:
+            while man is not None:
+                woman: Sym = self._table_men[man][man_individual_score[man]]
+                curr_husband: Sym|None = inv_matching[woman]    
+                if self._rank_men[woman][man] < self._rank_men[woman][curr_husband]:
+                    matching[man] = woman
+                    man, inv_matching[woman] = inv_matching[woman], man
+                if man is not None: man_individual_score[man] += 1
+        return matching
 
 if __name__ == "__main__":
     table_men: Table = dict()
@@ -106,16 +119,10 @@ if __name__ == "__main__":
     table_women["d"] = ["B","A","C","D"]
 
     s: Stable_Marriage = Stable_Marriage(table_men,table_women)
-    s.solve_problem(table_men,table_women)
     s.print_tables()
-    print(s.get_ranking(s._table_men))
-    print(s.get_ranking(s._table_women))
-    matching: Dict[Sym,Sym] = dict()
-    matching["A"] = "d"
-    matching["B"] = "a"
-    matching["C"] = "b"
-    matching["D"] = "c"
-    print(s.matching_is_stable(matching), s.compute_score(matching))
-    matching["A"] = "c"
-    matching["D"] = "d"
-    print(s.matching_is_stable(matching), s.compute_score(matching))
+    # print(s.get_ranking(s._table_men))
+    # print(s.get_ranking(s._table_women))
+    opt_matching: Dict[Sym,Sym] = s.solve_problem()
+    print(f"Matching found: {opt_matching}")
+    print(f"Matching is stable? {s.matching_is_stable(opt_matching)}")
+    print(f"Score for (men,women) is {s.compute_score(opt_matching)}")
