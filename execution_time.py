@@ -41,5 +41,6 @@ plt.loglog(n_vals, exp(model.intercept_) * n_vals**model.coef_,\
 plt.xlabel(r"n")
 plt.title("Execution time of Stable Marriage")
 plt.legend(["Execution time","Fitted"])
-# plt.savefig("execution_time.png",format="png")
-plt.show()
+plt.savefig("Figures/execution_time.png",format="png")
+plt.close()
+# plt.show()
