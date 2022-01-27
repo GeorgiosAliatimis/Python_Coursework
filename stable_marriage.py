@@ -4,33 +4,39 @@ from tabulate import tabulate
 from typing import Iterable, Dict, List, Sequence, Any, Tuple
 
 Sym: Any = int | str
-# Table = Dict[Sym,Sequence[Sym]]
 
 class Table(dict):
+    '''
+    This class represents the preference tables that are used in the 
+    Stable Matching Problem. 
+    '''
     def __init__(self, table: Any):
         super().__init__(table)
         self.validator()
-
+        
     def validator(self) -> None:
-        assert self.validate_table(), 'Input not valid'
-        assert self.validate_table_no_duplicates(), 'Input has duplicate values in a preference list.'
-    def validate_table(self) -> bool:
-        '''Validates that the table has the right type and consistent dimension across all values of the dictionary'''
-        is_right_type: bool=isinstance(self,dict) and  \
-                            all(isinstance(x, Sequence) for x in self.values()) and \
-                            all(all(isinstance(y, Sym.__args__) for y in x) for x in self.values())  
-        if not is_right_type:   return False
+        assert self.right_type(), 'Input does not have right type'
+        assert self.consistent_dimension(), 'Input table has preference lists of different length'
+        assert self.no_duplicates(), 'Input has duplicate values in a preference list.'
+    
+    def right_type(self) -> bool:
+        '''Assesses whether table is of the right type'''
+        return isinstance(self,dict) and  \
+                all(isinstance(x, Sequence) for x in self.values()) and \
+                all(all(isinstance(y, Sym.__args__) for y in x) for x in self.values())
+    
+    def consistent_dimension(self) -> bool: 
+        '''Assesses whether the table preference lists have consistent dimensions'''
         n: int = len(self[next(iter(self))])
-        has_consistent_dimension: bool = all(len(x) == n for x in self.values())
-        if not has_consistent_dimension: return False
-        return True
-    def validate_table_no_duplicates(self) -> bool:
-        '''Validates that the table has no duplicates in any of its preference lists'''
+        return all(len(x) == n for x in self.values())
+        
+    def no_duplicates(self) -> bool:
+        '''Checks whether preference lists contain any duplicates'''
         return all(len(pref_list) == len(set(pref_list))  for pref_list in self.values())
     
     def get_rank(self) -> None: 
         '''
-        Returns a version of the table where the list (values of the dictionary) are inverted.
+        Creates a version of the table where the preference lists (values of the dictionary) are inverted.
         A preference list ["a","b","c"] becomes a ranking dictionary {"a":1,"b":2,"c":3} 
         so that output[X][y] is the ranking of y according to X.
         Rankings begin from zero.
@@ -38,12 +44,15 @@ class Table(dict):
         self.rank = {key: {v:i for i,v in enumerate(val)} | {None:len(val)}  for key,val in self.items()}
     
     def __repr__(self) -> str:
-        '''Tables are printed using the tabulate library for pretty visualization'''
+        '''
+        Tables are printed using the tabulate library for pretty visualization
+        '''
         n: int = len(self)
         matrix: List[List[Sym]] = [[k] + list(v) for k, v in self.items()]
         ordinal = lambda n: "%d%s" % (n,"tsnrhtdd"[(n//10%10!=1)*(n%10<4)*n%10::4])
         headers: List[str] = [""] + [ordinal(i) for i in range(1,n+1)]
         return str(tabulate(matrix,tablefmt="fancy_grid",headers=headers))
+
 
 class Random_Table(Table): 
     def __init__(self,n: int) -> None:
