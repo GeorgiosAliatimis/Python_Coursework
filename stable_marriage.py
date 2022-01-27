@@ -4,174 +4,147 @@ from tabulate import tabulate
 from typing import Iterable, Dict, List, Sequence, Any, Tuple
 
 Sym: Any = int | str
-Table = Dict[Sym,Sequence[Sym]]
-class Stable_Marriage:
-    ''' 
-    This class can solve the Stable Marriage Problem.
-    It takes two preference tables as dictionaries with preference lists as values. 
-    Men's/proposer's preference table lists the preferences in women/acceptors of each man/proposer
-    i.e. table[man] is a list of preferences for man.
-    Equivalently women's/acceptors' preference tables are given.
-    
-    Properties:
-        _table_men: Table   (preference table of men)
-        _table_women: Table (preference table of women)
-        _rank_men: Dict[Sym,Dict[Sym|None,int]]  (rank of men for each woman, with undesirable man being denoted as None)
-        _rank_women: Dict[Sym,Dict[Sym|None,int]]  (rank of women for each man, with undesirable woman being denoted as None)
-    '''
-    def __init__(self, table_men: Table, 
-                       table_women: Table) -> None:
-        '''table_men and table_woman are validated and ranking are computed'''        
-        assert self.validate_table(table_men), 'Value of table_men is not valid'
-        assert self.validate_table(table_women), 'Value of table_women is not valid'
-        assert self.validate_table_no_duplicates(table_men), \
-            'table_men has duplicate values in a preference list.'
-        assert self.validate_table_no_duplicates(table_women), \
-            'table_women has duplicate values in a preference list.'
-        assert self.validate_tables_share_symbols(table_men,table_women), \
-            'Values of table_men and table_women are valid but there is a symbol mismatch'
-        self._table_men: Table   = table_men 
-        self._table_women: Table = table_women
-        self._rank_women: Dict[Sym,Dict[Sym|None,int]] = self.compute_ranking(self._table_men)
-        self._rank_men: Dict[Sym,Dict[Sym|None,int]] = self.compute_ranking(self._table_women)
+# Table = Dict[Sym,Sequence[Sym]]
 
-    def compute_ranking(self,table: Table) -> Dict[Sym,Dict[Sym|None,int]]: 
+class Table(dict):
+    def __init__(self, table: Any):
+        super().__init__(table)
+        self.validator()
+
+    def validator(self) -> None:
+        assert self.validate_table(), 'Input not valid'
+        assert self.validate_table_no_duplicates(), 'Input has duplicate values in a preference list.'
+    def validate_table(self) -> bool:
+        '''Validates that the table has the right type and consistent dimension across all values of the dictionary'''
+        is_right_type: bool=isinstance(self,dict) and  \
+                            all(isinstance(x, Sequence) for x in self.values()) and \
+                            all(all(isinstance(y, Sym.__args__) for y in x) for x in self.values())  
+        if not is_right_type:   return False
+        n: int = len(self[next(iter(self))])
+        has_consistent_dimension: bool = all(len(x) == n for x in self.values())
+        if not has_consistent_dimension: return False
+        return True
+    def validate_table_no_duplicates(self) -> bool:
+        '''Validates that the table has no duplicates in any of its preference lists'''
+        return all(len(pref_list) == len(set(pref_list))  for pref_list in self.values())
+    
+    def get_rank(self) -> None: 
         '''
         Returns a version of the table where the list (values of the dictionary) are inverted.
         A preference list ["a","b","c"] becomes a ranking dictionary {"a":1,"b":2,"c":3} 
         so that output[X][y] is the ranking of y according to X.
         Rankings begin from zero.
         '''
-        return {key: {v:i for i,v in enumerate(val)} | {None:len(val)}  for key,val in table.items()}
+        self.rank = {key: {v:i for i,v in enumerate(val)} | {None:len(val)}  for key,val in self.items()}
+    
+    def __repr__(self) -> str:
+        '''Tables are printed using the tabulate library for pretty visualization'''
+        n: int = len(self)
+        matrix: List[List[Sym]] = [[k] + list(v) for k, v in self.items()]
+        ordinal = lambda n: "%d%s" % (n,"tsnrhtdd"[(n//10%10!=1)*(n%10<4)*n%10::4])
+        headers: List[str] = [""] + [ordinal(i) for i in range(1,n+1)]
+        return str(tabulate(matrix,tablefmt="fancy_grid",headers=headers))
 
-    def validate_table_no_duplicates(self,table: Table) -> bool:
-        '''Validates that the table has no duplicates in any of its preference lists'''
-        return all(len(pref_list) == len(set(pref_list))  for pref_list in table.values())
+class Random_Table(Table): 
+    def __init__(self,n: int) -> None:
+        table: Dict[int,Sequence[int]] = self.generate_random_table(n)
+        super().__init__(table)
 
-    def validate_tables_share_symbols(self,table_men: Table, table_women: Table) -> bool:
+    def generate_random_table(self,n: int) -> Dict[Sym,Sequence[Sym]]:
+        return {i:random.sample(range(n) ,n) for i in range(n)} 
+
+class Stable_Matching:
+    ''' 
+    This class solves the Stable Matching Problem.
+    It takes two preference tables (proposer,acceptor) with preference lists as values. 
+    '''
+    def __init__(self, proposer: Table, 
+                       acceptor: Table) -> None:  
+        assert isinstance(proposer,Table), 'Proposer is not a Table'   
+        assert isinstance(acceptor,Table), 'Acceptor is not a Table' 
+        for t in (proposer,acceptor):   t.get_rank()
+        self.proposer: Table = proposer 
+        self.acceptor: Table = acceptor
+        assert self.validate_tables_share_symbols(), 'Symbol mismatch between proposer and acceptor'
+
+    def validate_tables_share_symbols(self) -> bool:
         '''
         Validates that the tables share the same symbols in that for every
         preference list of a table there is a 1-1 mapping to the keys of the other table
         '''
-        vals2_in_keys1: bool  =  all( set(x) == set(table_men.keys()) for x in table_women.values() )
-        vals1_in_keys2: bool  =  all( set(x) == set(table_women.keys()) for x in table_men.values() )
+        vals2_in_keys1: bool  =  all( set(x) == set(self.proposer.keys()) for x in self.acceptor.values() )
+        vals1_in_keys2: bool  =  all( set(x) == set(self.acceptor.keys()) for x in self.proposer.values() )
         return vals1_in_keys2 and vals2_in_keys1
-
-    def validate_table(self,table: Table) -> bool:
-        '''Validates that a table has the right type and consistent dimension across all values of the dictionary'''
-        is_right_type: bool=isinstance(table,dict) and  \
-                            all(isinstance(x, Sequence) for x in table.values()) and \
-                            all(all(isinstance(y, Sym.__args__) for y in x) for x in table.values())  
-        if not is_right_type:   return False
-        n: int = len(table[next(iter(table))])
-        has_consistent_dimension: bool = all(len(x) == n for x in table.values())
-        if not has_consistent_dimension: return False
-        return True
 
     def matching_is_stable(self, matching: Dict[Sym,Sym]) -> bool:
         '''
-        For a given matching (which is a dictionary with key=man and value=matched_woman) the algorithm 
-        checks whether the matching is stable returning True if it is.
+        For a given matching (which is a dictionary with key=proposer and value=matched_acceptor)
+        the algorithm checks whether the matching is stable returning True if it is.
         '''
-        woman: Sym
-        man: Sym 
-        men: Iterable[Sym] 
-        for woman, men in self._table_women.items():
-            for man in men:
-                if woman == matching[man]:  break
-                curr_wife: Sym = matching[man]
-                if self._rank_women[man][woman] < self._rank_women[man][curr_wife]:   
+        acc: Sym   #Acceptor
+        prop: Sym  #Proposer
+        props: Iterable[Sym] 
+        for acc, props in self.acceptor.items():
+            for prop in props:
+                if acc == matching[prop]:  break
+                curr_acc: Sym = matching[prop]
+                if self.proposer.rank[prop][acc] < self.proposer.rank[prop][curr_acc]:   
                     return False
         return True
 
     def compute_score(self, matching: Dict[Sym,Sym]) -> Tuple[int,int]:
         '''
-        Computes the score for men and women which is defined as the sum of all the rankings 
-        for men and women respectively. The higher the score for a gender,
-        the less the aggregate satisfaction for that gender. A score of zero corresponds to complete 
-        satisfaction for that gender implying that every person from that gender got their first preference.
-        The highest score is (n-1)*n which corresponds to every person from that gender getting their last preference,
-        where n is the number of people from each gender.
+        Computes the score for proposers and acceptors which is defined as the sum of all the rankings 
+        for proposers and acceptors respectively. The higher the score for a group,
+        the less the aggregate satisfaction for that group. A score of zero corresponds to complete 
+        satisfaction for that group implying that every member of that group got their first preference.
+        The highest score is (n-1)*n which corresponds to every member of that group getting their last preference,
+        where n is the number of proposers and acceptors.
         '''
-        score_men: int 
-        score_women: int 
-        score_men = sum(self._rank_women[man][matching[man]] for man in self._table_men)
-        score_women = sum(self._table_women[matching[man]].index(man) for man in self._table_men)
-        return score_men, score_women
-
-    def print_tables(self) -> None:
-        '''Tables are printed using the tabulate library for pretty visualization'''
-        n: int = len(self._table_men)
-        t: Table
-        for t in (self._table_men,self._table_women):
-            matrix: List[List[Sym]] = [[k] + list(v) for k, v in t.items()]
-            ordinal = lambda n: "%d%s" % (n,"tsnrhtdd"[(n//10%10!=1)*(n%10<4)*n%10::4])
-            headers: List[str] = [""] + [ordinal(i) for i in range(1,n+1)]
-            print(tabulate( matrix,tablefmt="fancy_grid",headers=headers))
+        score_proposer: int = sum(self.proposer.rank[prop][matching[prop]] for prop in self.proposer)
+        score_acceptor: int = sum(self.acceptor[matching[prop]].index(prop) for prop in self.proposer)
+        return score_proposer, score_acceptor
 
     def solve_problem(self) -> Dict[Sym,Sym]:
         '''
-        The Stable Marriage Problem is solved using the algorithm descripted in Chapter 2 page 9
+        The Stable Matching Problem is solved using the algorithm descripted in Chapter 2 page 9
         of 'Stable Marriage and Its Relation to Other Combinatorial Problems'.
         A matching (as a dictionary) is returned.
         '''
-        man_individual_score: Dict[Sym,int] = {man:0 for man in self._table_men}
-        matching: Dict[Sym,Sym|None] = {man: None for man in self._table_men}
-        inv_matching: Dict[Sym,Sym|None] = {woman: None for woman in self._table_women}
-        man: Sym|None
-        for man in self._table_men:
-            while man is not None:
-                woman: Sym = self._table_men[man][man_individual_score[man]]
-                curr_husband: Sym|None = inv_matching[woman]    
-                if self._rank_men[woman][man] < self._rank_men[woman][curr_husband]:
-                    matching[man] = woman
-                    man, inv_matching[woman] = inv_matching[woman], man
-                if man is not None: man_individual_score[man] += 1
+        prop_individual_score: Dict[Sym,int] = {prop:0 for prop in self.proposer}
+        matching: Dict[Sym,Sym|None] = {prop: None for prop in self.proposer}
+        inv_matching: Dict[Sym,Sym|None] = {acc: None for acc in self.acceptor}
+        prop: Sym|None
+        for prop in self.proposer:
+            while prop is not None:
+                acc: Sym = self.proposer[prop][prop_individual_score[prop]]
+                curr_prop: Sym|None = inv_matching[acc]    
+                if self.acceptor.rank[acc][prop] < self.acceptor.rank[acc][curr_prop]:
+                    matching[prop] = acc
+                    prop, inv_matching[acc] = inv_matching[acc], prop
+                if prop is not None: prop_individual_score[prop] += 1
         return matching
 
-class Stable_Marriage_Random_Tables(Stable_Marriage):
-    '''
-    Random preference tables of size n are generated for both men/proposers and women/acceptors.
-    All other methods inherited from Stable_Marriage.
-    '''
-    def __init__(self,n: int) -> None:
-        table_men: Table   = self.generate_random_table(n)
-        table_women: Table = self.generate_random_table(n)
-        super().__init__(table_men, table_women)
-
-    def generate_random_table(self,n: int) -> Table:
-        return {i:random.sample(range(n) ,n) for i in range(n)} 
-
 if __name__ == "__main__":
-    # This is the example given in Ch1 and Ch2 of 
+    # Two examples are shown; a predefined example given in Ch1 and Ch2 of 
     # Stable Marriage and Its Relation to Other Combinatorial Problems.
     # The same matching is found {'A': 'd', 'B': 'a', 'C': 'b', 'D': 'c'}.
-    table_men: Table = dict()
-    table_men["A"] = ["c","b","d","a"]
-    table_men["B"] = ["b","a","c","d"]
-    table_men["C"] = ["b","d","a","c"]
-    table_men["D"] = ["c","a","d","b"]
-
-    table_women: Table = dict()
-    table_women["a"] = ["A","B","D","C"]
-    table_women["b"] = ["C","A","D","B"]
-    table_women["c"] = ["C","B","D","A"]
-    table_women["d"] = ["B","A","C","D"]
-
-    s: Stable_Marriage = Stable_Marriage(table_men,table_women)
-    s.print_tables()
-    opt_matching: Dict[Sym,Sym] = s.solve_problem()
-    print(f"Matching found: {opt_matching}")
-    print(f"Matching is stable? {s.matching_is_stable(opt_matching)}")
-    print(f"Score for (men,women) is {s.compute_score(opt_matching)}")
-
-    # We now run Stable_Marriage_Random_Tables which generates 
-    # random preference tables for n=5 people of each gender. 
-    print("-"*40)
+    p1: Table = Table({'A': ['c', 'b', 'd', 'a'], 'B': ['b', 'a', 'c', 'd'], \
+        'C': ['b', 'd', 'a', 'c'], 'D': ['c', 'a', 'd', 'b']})
+    a1: Table =  Table({'a': ['A', 'B', 'D', 'C'], 'b': ['C', 'A', 'D', 'B'], \
+        'c': ['C', 'B', 'D', 'A'], 'd': ['B', 'A', 'C', 'D']})
+    #The second example is random with n=5 proposers and acceptors.
     random.seed(1)
-    r: Stable_Marriage_Random_Tables = Stable_Marriage_Random_Tables(5)
-    r.print_tables()
-    opt_matching_r: Dict[Sym,Sym] = r.solve_problem()
-    print(f"Matching found: {opt_matching_r}")
-    print(f"Matching is stable? {r.matching_is_stable(opt_matching_r)}")
-    print(f"Score for (men,women) is {r.compute_score(opt_matching_r)}")
+    p2: Table = Random_Table(n=5)
+    a2: Table = Random_Table(n=5)
+
+    for proposer, acceptor in [(p1,a1),(p2,a2)]:
+        print("Proposer table")
+        print(proposer)
+        print("Acceptor Table")
+        print(acceptor)
+        s: Stable_Matching = Stable_Matching(proposer,acceptor)
+        opt_matching: Dict[Sym,Sym] = s.solve_problem()
+        print(f"Matching found: {opt_matching}")
+        print(f"Matching is stable? {s.matching_is_stable(opt_matching)}")
+        print(f"Score for (proposers,acceptors) is {s.compute_score(opt_matching)}")
