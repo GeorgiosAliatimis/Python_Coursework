@@ -27,7 +27,7 @@ class Table(dict):
     
     def consistent_dimension(self) -> bool: 
         '''Assesses whether the table preference lists have consistent dimensions'''
-        n: int = len(self[next(iter(self))])
+        n: int = len(self)
         return all(len(x) == n for x in self.values())
         
     def no_duplicates(self) -> bool:
