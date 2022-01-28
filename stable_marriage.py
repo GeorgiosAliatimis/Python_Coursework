@@ -111,7 +111,7 @@ class Stable_Matching:
         where n is the number of proposers and acceptors.
         '''
         score_proposer: int = sum(self.proposer.rank[prop][matching[prop]] for prop in self.proposer)
-        score_acceptor: int = sum(self.acceptor[matching[prop]].index(prop) for prop in self.proposer)
+        score_acceptor: int = sum(self.acceptor.rank[matching[prop]][prop] for prop in self.proposer)
         return score_proposer, score_acceptor
 
     def solve_problem(self) -> Dict[Sym,Sym]:
