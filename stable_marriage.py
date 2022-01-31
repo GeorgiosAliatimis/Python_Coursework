@@ -15,9 +15,10 @@ class Table(dict):
         self.validator()
         
     def validator(self) -> None:
-        assert self.right_type(), 'Input does not have right type'
-        assert self.consistent_dimension(), 'Input table has preference lists of different length'
+        assert self.right_type(), 'Input does not have right type.'
+        assert self.consistent_dimension(), 'Input table has a preference list that is not equal to the number of keys.'
         assert self.no_duplicates(), 'Input has duplicate values in a preference list.'
+        assert self.same_symbols(), 'Preference lists do not share the same symbols.'
     
     def right_type(self) -> bool:
         '''Assesses whether table is of the right type'''
@@ -33,6 +34,14 @@ class Table(dict):
     def no_duplicates(self) -> bool:
         '''Checks whether preference lists contain any duplicates'''
         return all(len(pref_list) == len(set(pref_list))  for pref_list in self.values())
+    
+    def same_symbols(self) -> bool:
+        '''Checks whether preference lists share the same symbols.'''
+        prev = None
+        for v in self.values():
+            if prev is not None and set(v) != prev: return False
+            prev = set(v)
+        return True
     
     def get_rank(self) -> None: 
         '''
@@ -55,12 +64,15 @@ class Table(dict):
 
 
 class Random_Table(Table): 
-    def __init__(self,n: int) -> None:
-        table: Dict[int,Sequence[int]] = self.generate_random_table(n)
+    def __init__(self,n: int, **kwargs ) -> None:
+        table: Dict[int,Sequence[int]] = self.generate_random_table(n,**kwargs)
         super().__init__(table)
 
-    def generate_random_table(self,n: int) -> Dict[Sym,Sequence[Sym]]:
-        return {i:random.sample(range(n) ,n) for i in range(n)} 
+    def generate_random_table(self,n: int,key_syms: Iterable[Sym]|None = None , 
+                                          val_syms: Iterable[Sym]|None = None) -> Dict[Sym,Sequence[Sym]]:
+        if key_syms is None: key_syms = range(n)
+        if val_syms is None: val_syms = range(n)
+        return {i:random.sample(val_syms,n) for i in key_syms} 
 
 class Stable_Matching:
     ''' 
